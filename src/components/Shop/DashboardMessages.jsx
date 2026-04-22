@@ -1,7 +1,7 @@
 import axios from "axios";
 import React, { useRef, useState } from "react";
 import { useEffect } from "react";
-import { server } from "../../server";
+import { server, socketEndpoint } from "../../server";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { AiOutlineArrowRight, AiOutlineSend } from "react-icons/ai";
@@ -11,9 +11,8 @@ import socketIO from "socket.io-client";
 import { format } from "timeago.js";
 import DashboardHeader from "./Layout/DashboardHeader";
 
-// Socket.io endpoint url
-const ENDPOINT = "https://guriraline-socket-awo9.onrender.com";
-const socketId = socketIO(ENDPOINT, { transports: ["websocket"] });
+// Create the shared Socket.IO client from the environment-aware endpoint configuration.
+const socketId = socketIO(socketEndpoint, { transports: ["websocket"] });
 
 const DashboardMessages = () => {
   const { seller, isLoading } = useSelector((state) => state.seller);
@@ -30,13 +29,20 @@ const DashboardMessages = () => {
   const scrollRef = useRef(null);
 
   useEffect(() => {
-    socketId.on("getMessage", (data) => {
+    // Register the realtime message listener once and clean it up on unmount to avoid duplicate handlers.
+    const handleIncomingMessage = (data) => {
       setArrivalMessage({
         sender: data.senderId,
         text: data.text,
         createdAt: Date.now(),
       });
-    });
+    };
+
+    socketId.on("getMessage", handleIncomingMessage);
+
+    return () => {
+      socketId.off("getMessage", handleIncomingMessage);
+    };
   }, []);
 
   useEffect(() => {
@@ -91,9 +97,16 @@ const DashboardMessages = () => {
     if (seller) {
       const sellerId = seller?._id;
       socketId.emit("addUser", sellerId);
-      socketId.on("getUsers", (data) => {
+      // Refresh the online user list from the shared socket connection.
+      const handleUsersUpdate = (data) => {
         setOnlineUsers(data);
-      });
+      };
+
+      socketId.on("getUsers", handleUsersUpdate);
+
+      return () => {
+        socketId.off("getUsers", handleUsersUpdate);
+      };
     }
   }, [seller]);
 
@@ -130,8 +143,9 @@ const DashboardMessages = () => {
       product: currentChat.product || null,
     };
 
+    // Find the receiving participant by comparing the raw member id values from the conversation.
     const receiverId = currentChat.members.find(
-      (member) => member.id !== seller._id
+      (member) => member !== seller._id
     );
 
     socketId.emit("sendMessage", {

@@ -5,7 +5,11 @@ import Header from "../components/Layout/Header";
 import Footer from '../components/Layout/Footer';
 import Loader from "../components/Layout/Loader";
 import { Helmet } from 'react-helmet';
+
 const EventsPage = () => {
+  // Build a stable preview image URL and keep a safe fallback for non-browser environments.
+  const socialPreviewImage =
+    typeof window !== "undefined" ? `${window.location.origin}/logo512.png` : "/logo512.png";
   const { allEvents, isLoading } = useSelector((state) => state.events);
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState({});
@@ -71,9 +75,9 @@ const EventsPage = () => {
       <Helmet>
         <title>All Events - Guriraline</title>
         <meta name="description" content="Get access to the best events from Guriraline. Top deals and fast shipping." />
-        <meta property="og:title" content="Product Name - Guriraline" />
+        <meta property="og:title" content="All Events - Guriraline" />
         <meta property="og:description" content="Discover Events at Guriraline. Best prices guaranteed!" />
-        <meta property="og:image" content="https://example.com/product-image.jpg" />
+        <meta property="og:image" content={socialPreviewImage} />
       </Helmet>
       <Header activeHeading={4} />
       <div className="flex justify-center flex-wrap w-full max-w-screen-xl mx-auto mt-10 mb-20">

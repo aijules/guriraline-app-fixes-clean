@@ -3,14 +3,14 @@ import Header from "../components/Layout/Header";
 import { useSelector } from "react-redux";
 import socketIO from "socket.io-client";
 import { format } from "timeago.js";
-import { server } from "../server";
+import { server, socketEndpoint } from "../server";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { AiOutlineArrowRight, AiOutlineSend } from "react-icons/ai";
 import { TfiGallery } from "react-icons/tfi";
 import styles from "../styles/styles";
-const ENDPOINT = "https://guriraline-socket-awo9.onrender.com";
-const socketId = socketIO(ENDPOINT, { transports: ["websocket"] });
+// Create the shared Socket.IO client from the environment-aware endpoint configuration.
+const socketId = socketIO(socketEndpoint, { transports: ["websocket"] });
 
 const UserInbox = () => {
   const { user,loading } = useSelector((state) => state.user);
@@ -27,13 +27,20 @@ const UserInbox = () => {
   const scrollRef = useRef(null);
 
   useEffect(() => {
-    socketId.on("getMessage", (data) => {
+    // Register the realtime message listener once and remove it on unmount to avoid duplicate listeners.
+    const handleIncomingMessage = (data) => {
       setArrivalMessage({
         sender: data.senderId,
         text: data.text,
         createdAt: Date.now(),
       });
-    });
+    };
+
+    socketId.on("getMessage", handleIncomingMessage);
+
+    return () => {
+      socketId.off("getMessage", handleIncomingMessage);
+    };
   }, []);
 
   useEffect(() => {
@@ -64,9 +71,16 @@ const UserInbox = () => {
     if (user) {
       const sellerId = user?._id;
       socketId.emit("addUser", sellerId);
-      socketId.on("getUsers", (data) => {
+      // Refresh the online user list from the shared socket connection.
+      const handleUsersUpdate = (data) => {
         setOnlineUsers(data);
-      });
+      };
+
+      socketId.on("getUsers", handleUsersUpdate);
+
+      return () => {
+        socketId.off("getUsers", handleUsersUpdate);
+      };
     }
   }, [user]);
 

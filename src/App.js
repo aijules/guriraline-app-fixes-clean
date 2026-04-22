@@ -95,18 +95,24 @@ import CommissionDashboard from "./components/Commission/CommissionDashboard";
 import { ReferralProvider } from './context/ReferralContext';
 import CookieConsent from './components/CookieConsent/CookieConsent';
 
-// Google Analytics tracking code inside App component
+// Track route changes in Google Analytics only when the gtag script is available in the browser.
 const GoogleAnalytics = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Send page view to Google Analytics on route change
+    // Exit early when analytics has not loaded yet or is blocked by the browser.
+    if (typeof window === "undefined" || typeof window.gtag !== "function") {
+      return;
+    }
+
+    // Send a page view that includes both the pathname and the search query.
     window.gtag("config", "G-M3HYHLZ70H", {
-      page_path: location.pathname,
+      page_path: `${location.pathname}${location.search}`,
     });
   }, [location]);
 
-  return null; // This component doesn't render anything
+  // This helper component exists only for analytics side effects.
+  return null;
 };
 
 // Fallback loading component for Suspense
@@ -117,32 +123,45 @@ const LoadingFallback = () => (
 );
 
 const App = () => {
-  useEffect(() => {
-    Store.dispatch(loadUser());
-    Store.dispatch(loadSeller());
-    Store.dispatch(getAllProducts());
-    Store.dispatch(getAllEvents());
-    Store.dispatch(getAllFlashSales());
-    Store.dispatch(getActiveBids());
-  }, []);
-
+  // Keep the preloader visible briefly so the first render does not flash while startup data is loading.
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading time and fetch data
-    Promise.all([
-      Store.dispatch(loadUser()),
-      Store.dispatch(loadSeller()),
-      Store.dispatch(getAllProducts()),
-      Store.dispatch(getAllEvents()),
-      Store.dispatch(getAllFlashSales()),
-      Store.dispatch(getActiveBids()),
-    ]).then(() => {
-      // Add a minimum delay of 2 seconds for the preloader
-      setTimeout(() => {
-        setLoading(false);
-      }, 200);
-    });
+    // Track whether the component is still mounted before updating state after async work finishes.
+    let isMounted = true;
+
+    // Keep the minimum preloader time in one place for easier maintenance.
+    const minimumPreloaderDelayMs = 200;
+
+    // Load the initial application data only once so the app does not fire duplicate requests on startup.
+    const bootstrapApplication = async () => {
+      try {
+        await Promise.all([
+          Store.dispatch(loadUser()),
+          Store.dispatch(loadSeller()),
+          Store.dispatch(getAllProducts()),
+          Store.dispatch(getAllEvents()),
+          Store.dispatch(getAllFlashSales()),
+          Store.dispatch(getActiveBids()),
+        ]);
+      } finally {
+        // Delay the handoff slightly so the preloader disappears smoothly after the startup calls finish.
+        setTimeout(() => {
+          // Only update state when the component is still mounted.
+          if (isMounted) {
+            setLoading(false);
+          }
+        }, minimumPreloaderDelayMs);
+      }
+    };
+
+    // Start the initial bootstrap flow.
+    bootstrapApplication();
+
+    // Prevent state updates after unmount.
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
@@ -151,8 +170,13 @@ const App = () => {
         <GoogleAnalytics />
         <CookieConsent />
         <Suspense fallback={<LoadingFallback />}>
-        <div>
-          <Routes>
+          {/* Show the dedicated preloader until the startup requests finish. */}
+          {loading ? (
+            <Preloader />
+          ) : (
+            <>
+              <div>
+                <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -183,7 +207,8 @@ const App = () => {
             <Route path='/about' element={<AboutPage />} />
             <Route path="/careers" element={<CareerPage />} />
             <Route path='/live-chat' element={<LiveChatPage />} />
-            <Route path='contact' element={<ContactPage />} />
+            {/* Use an absolute path here to keep route definitions consistent across the app. */}
+            <Route path="/contact" element={<ContactPage />} />
             <Route path="/selling" element={<SellingPage />} />
             <Route path="/locations" element={<LocationsPage />} />
             <Route path="/terms" element={<TermsPage />} />
@@ -454,9 +479,9 @@ const App = () => {
                 </ProtectedRoute>
               } 
             />
-          </Routes>
-        </div>
-        <ToastContainer
+                </Routes>
+              </div>
+              <ToastContainer
           position="bottom-right"
           autoClose={2000}
           hideProgressBar={true}
@@ -466,9 +491,11 @@ const App = () => {
           pauseOnFocusLoss
           draggable
           pauseOnHover
-          theme="light" // can be set dynamically if needed
-          className="custom-toast-container" // Add custom class name for easier targeting
-        />
+                theme="light" // can be set dynamically if needed
+                className="custom-toast-container" // Add custom class name for easier targeting
+              />
+            </>
+          )}
         </Suspense>
       </ReferralProvider>
     </BrowserRouter>

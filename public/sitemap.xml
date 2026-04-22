@@ -38,7 +38,7 @@
 
     <!-- Product Category Page -->
     <url>
-        <loc>https://guriraline.com/products?category=Mobiles</loc>
+        <loc>https://www.guriraline.com/products?category=Mobiles</loc>
         <lastmod>2024-12-01T13:57:12+00:00</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
@@ -46,7 +46,7 @@
 
     <!-- Specific Product Page Example -->
     <url>
-        <loc>https://guriraline.com/product/673df8435b00468530178095</loc>
+        <loc>https://www.guriraline.com/product/673df8435b00468530178095</loc>
         <lastmod>2024-12-01T13:57:12+00:00</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
@@ -54,7 +54,7 @@
 
     <!-- About Us Page -->
     <url>
-        <loc>https://www.guriraline.com/about-us/</loc>
+        <loc>https://www.guriraline.com/about/</loc>
         <lastmod>2024-12-01T13:57:12+00:00</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.5</priority>

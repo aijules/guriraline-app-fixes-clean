@@ -1,3 +1,29 @@
+// Build a lightweight inline placeholder so category cards never render broken example.com images.
+const createInlineCategoryPlaceholder = (title = "Category") => {
+  // Keep the label readable inside the generated SVG placeholder.
+  const safeTitle = String(title).replace(/[&<>"]/g, "");
+
+  // Encode the SVG into a data URI so it can be used anywhere a normal image URL is expected.
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
+      <rect width="640" height="480" fill="#f3f4f6" />
+      <rect x="24" y="24" width="592" height="432" rx="24" fill="#e5e7eb" stroke="#cbd5e1" stroke-width="4" />
+      <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" fill="#334155" font-size="34" font-family="Arial, sans-serif">${safeTitle}</text>
+    </svg>
+  `;
+
+  // Return the inline placeholder as a normal image URL string.
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+};
+
+// Replace any leftover example.com image with a safe inline placeholder before exporting the category data.
+const sanitizeCategoryImageUrl = (item) => ({
+  ...item,
+  image_Url: item.image_Url?.includes("example.com")
+    ? createInlineCategoryPlaceholder(item.title)
+    : item.image_Url,
+});
+
 export const navItems = [
   {
     id: 1,
@@ -211,7 +237,7 @@ export const brandingData = [
   },
 ];
 
-export const categoriesData = [
+const rawCategoriesData = [
   {
     id: 1,
     title: "Computers & Electronics",
@@ -1363,3 +1389,7 @@ export const footerSupportLinks = [
     link: "/live-chat",
   },
 ];
+
+
+// Export the category data after converting any placeholder image URLs into safe inline placeholders.
+export const categoriesData = rawCategoriesData.map(sanitizeCategoryImageUrl);
