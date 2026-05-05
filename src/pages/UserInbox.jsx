@@ -10,7 +10,10 @@ import { AiOutlineArrowRight, AiOutlineSend } from "react-icons/ai";
 import { TfiGallery } from "react-icons/tfi";
 import styles from "../styles/styles";
 // Create the shared Socket.IO client from the environment-aware endpoint configuration.
-const socketId = socketIO(socketEndpoint, { transports: ["websocket"] });
+const socketId = socketIO(socketEndpoint, {
+  transports: ["polling", "websocket"],
+  withCredentials: true,
+});
 
 const UserInbox = () => {
   const { user,loading } = useSelector((state) => state.user);

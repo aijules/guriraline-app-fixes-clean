@@ -11,8 +11,11 @@ import socketIO from "socket.io-client";
 import { format } from "timeago.js";
 import DashboardHeader from "./Layout/DashboardHeader";
 
-// Create the shared Socket.IO client from the environment-aware endpoint configuration.
-const socketId = socketIO(socketEndpoint, { transports: ["websocket"] });
+// Create the shared Socket.IO client from the environment-aware endpoint configurationADDED
+const socketId = socketIO(socketEndpoint, {
+  transports: ["polling", "websocket"],
+  withCredentials: true,
+});
 
 const DashboardMessages = () => {
   const { seller, isLoading } = useSelector((state) => state.seller);
